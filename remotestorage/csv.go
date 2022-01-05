@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/csv"
 	"fmt"
-	"strconv"
 	"sync"
 )
 
@@ -21,15 +20,14 @@ var csvPool = sync.Pool{New: func() interface{} {
 // Safety: CsvWriter is not thread safe.
 type CsvWriter struct {
 	store *S3
+	path  string // path id for this csv.
 
-	id    uint64 // unique id for this table.
-	count uint   // Count for the current csv.
-
+	count  uint // Count for the current csv.
 	buf    *bytes.Buffer
 	writer *csv.Writer
 }
 
-func NewCsvWriter(store *S3) *CsvWriter {
+func NewCsvWriter(store *S3, path string) *CsvWriter {
 	buf := csvPool.Get().(*bytes.Buffer)
 	buf.Reset()
 
@@ -37,9 +35,15 @@ func NewCsvWriter(store *S3) *CsvWriter {
 
 	return &CsvWriter{
 		store:  store,
+		path:   path,
 		buf:    buf,
 		writer: writer,
 	}
+}
+
+// IsFree must be called before calling WriteRecord.
+func (c *CsvWriter) IsFree() bool {
+	return c.count <= recordLimit
 }
 
 func (c *CsvWriter) WriteRecord(record []string) (err error) {
@@ -49,32 +53,32 @@ func (c *CsvWriter) WriteRecord(record []string) (err error) {
 	}
 
 	c.count++
-	if c.count > recordLimit {
-		return c.persist()
-	}
 	return nil
 }
 
-func (c *CsvWriter) persist() (err error) {
+// Persist will persist all memory data into s3 and free the writer.
+// The writer should not be used after this call.
+//
+// Caller must decide whether to call Persist. Mostly, Persist should be called in the following cases:
+// - IsFree returns false: the writer is full, we should persist it.
+// - All records are consumed: we should persist the remaining data.
+func (c *CsvWriter) Persist() (err error) {
 	// Make sure all data has been flushed.
 	c.writer.Flush()
 
 	err = c.store.Write(
-		strconv.FormatUint(c.id, 10),
+		c.path,
 		int64(c.buf.Len()),
 		c.buf)
 	if err != nil {
 		return fmt.Errorf("persist csv: %w", err)
 	}
 
-	c.buf.Reset()
-	c.count = 0
-	c.id++
+	c.close()
 	return nil
 }
 
-func (c *CsvWriter) Close() error {
+func (c *CsvWriter) close() {
 	csvPool.Put(c.buf)
 	c.buf = nil
-	return nil
 }
