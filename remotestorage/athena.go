@@ -11,6 +11,7 @@ type Athena struct {
 	client *athena.Athena
 }
 
+// TODO: just a quick reference for now, should be implemented.
 func (a *Athena) Setup() {
 	// 1. Create a glue database
 	_, _ = a.glue.CreateDatabase(nil)

@@ -2,10 +2,11 @@ package remotestorage
 
 import (
 	"fmt"
+	"io"
+
 	"github.com/pingcap/log"
 	"github.com/pingcap/tidb/config"
 	"go.uber.org/zap"
-	"io"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/credentials"
