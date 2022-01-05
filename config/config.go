@@ -199,6 +199,8 @@ type Config struct {
 	MaxBallastObjectSize int `toml:"max-ballast-object-size" json:"max-ballast-object-size"`
 	// BallastObjectSize set the initial size of the ballast object, the unit is byte.
 	BallastObjectSize int `toml:"ballast-object-size" json:"ballast-object-size"`
+
+	RemoteStorage RemoteStorage `toml:"remote-storage" json:"remote-storage"`
 }
 
 // UpdateTempStoragePath is to update the `TempStoragePath` if port/statusPort was changed
@@ -343,6 +345,21 @@ func (b *AtomicBool) UnmarshalText(text []byte) error {
 		return errors.New("Invalid value for bool type: " + str)
 	}
 	return nil
+}
+
+type RemoteStorage struct {
+	Type string // In the hackathon 2021, we support s3 only.
+	S3   RemoteStorageS3
+}
+
+// RemoteStorageS3 is the config struct for s3 remote storage.
+//
+// TODO: it's possible to support s3 compatible remote storage in the future.
+// 	     But in the hackathon 2021, we support aws s3 only.
+type RemoteStorageS3 struct {
+	Bucket          string
+	AccessKeyId     string
+	SecretAccessKey string
 }
 
 // Log is the log section of config.
