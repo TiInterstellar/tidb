@@ -38,3 +38,6 @@
     - 数据删除与迁移
   - 存储格式
 - 查询支持 partition on s3
+
+
+[operator.md](./operation.md)
